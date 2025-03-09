@@ -49,3 +49,48 @@ bool edit_distance_within(const std::string& str1, const std::string& str2, int 
 bool is_adjacent(const string& word1, const string& word2) {
     return edit_distance_within(word1, word2, 1);
 }
+
+vector<string> generate_word_ladder(const string& begin_word, const string& end_word, const set<string>& word_list) {
+    if (begin_word == end_word) {
+        error(begin_word, end_word, "Start and end words are the same");
+        return {};
+    }
+    
+    // Initialize queue for BFS
+    queue<vector<string>> ladder_queue;
+    ladder_queue.push({begin_word});
+    
+    // Set to track visited words to avoid cycles
+    set<string> visited;
+    visited.insert(begin_word);
+    
+    // BFS to find shortest path
+    while (!ladder_queue.empty()) {
+        vector<string> current_ladder = ladder_queue.front();
+        ladder_queue.pop();
+        
+        string last_word = current_ladder.back();
+        
+        // Check all words in dictionary to find neighbors
+        for (const string& word : word_list) {
+            if (visited.find(word) != visited.end()) {
+                continue;
+            }
+            
+            // Check if the word is adjacent to the last word in the ladder
+            if (is_adjacent(last_word, word)) {
+                vector<string> new_ladder = current_ladder;
+                new_ladder.push_back(word);
+                
+                if (word == end_word) {
+                    return new_ladder;
+                }
+                visited.insert(word);  
+                ladder_queue.push(new_ladder);
+            }
+        }
+    }
+    
+    error(begin_word, end_word, "No word ladder exists");
+    return {};
+}
