@@ -44,3 +44,8 @@ bool edit_distance_within(const std::string& str1, const std::string& str2, int 
     }
     return dp[len1][len2] <= d;
 }
+
+// Check if two words are adjacent (edit distance = 1)
+bool is_adjacent(const string& word1, const string& word2) {
+    return edit_distance_within(word1, word2, 1);
+}
