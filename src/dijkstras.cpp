@@ -32,3 +32,20 @@ vector<int> dijkstra_shortest_path(const Graph& G, int source, vector<int>& prev
     
     return distances;
 }
+
+void print_path(const vector<int>& path, int total) {
+    if (path.empty()) {
+        cout << "No path exists" << endl;
+        return;
+    }
+    
+    cout << "Path: ";
+    for (size_t i = 0; i < path.size(); ++i) {
+        cout << path[i];
+        if (i < path.size() - 1) {
+            cout << " -> ";
+        }
+    }
+    
+    cout << ", Total Cost: " << total << endl;
+}
