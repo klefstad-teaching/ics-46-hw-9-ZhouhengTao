@@ -1,4 +1,7 @@
 #include "ladder.h"
+#include <unordered_map>
+#include <unordered_set>
+#include <algorithm>
 
 void error(string word1, string word2, string msg) {
     cout << "Cannot create word ladder from '" << word1 << "' to '" << word2 << "': " << msg << endl;
@@ -50,22 +53,23 @@ bool edit_distance_within(const std::string& str1, const std::string& str2, int 
         return false;
     }
     
+
     // Create a dynamic programming matrix
-    vector<vector<int>> dp(len1 + 1, vector<int>(len2 + 1, 0));
-    
-    for (int i = 0; i <= len1; i++) dp[i][0] = i;
-    for (int j = 0; j <= len2; j++) dp[0][j] = j;
-    
+    vector<int> prev(len2 + 1), curr(len2 + 1);
+    for (int j = 0; j <= len2; j++) prev[j] = j;
+
     for (int i = 1; i <= len1; i++) {
+        curr[0] = i;
         for (int j = 1; j <= len2; j++) {
             if (tolower(str1[i-1]) == tolower(str2[j-1])) {
-                dp[i][j] = dp[i-1][j-1];
+                curr[j] = prev[j-1];
             } else {
-                dp[i][j] = 1 + min(dp[i-1][j-1], min(dp[i-1][j], dp[i][j-1]));
+                curr[j] = 1 + min(prev[j-1], min(prev[j], curr[j-1]));
             }
         }
+        prev = curr;
     }
-    return dp[len1][len2] <= d;
+    return prev[len2] <= d;
 }
 
 // Check if two words are adjacent (edit distance = 1)
@@ -73,12 +77,46 @@ bool is_adjacent(const string& word1, const string& word2) {
     return edit_distance_within(word1, word2, 1);
 }
 
-map<int, vector<string>> organize_by_length(const set<string>& word_list) {
-    map<int, vector<string>> length_map;
+unordered_map<int, vector<string>> organize_by_length(const set<string>& word_list) {
+    unordered_map<int, vector<string>> length_map;
     for (const string& word : word_list) {
         length_map[word.length()].push_back(word);
     }
     return length_map;
+}
+
+vector<string> find_potential_neighbors(const string& word, 
+                                       const unordered_map<int, vector<string>>& words_by_length) {
+    vector<string> candidates;
+    int len = word.length();
+    
+    // For each possible length (same, one bit shorter, one bit longer)
+    for (int l : {len, len - 1, len + 1}) {
+        if (l < 1 || words_by_length.find(l) == words_by_length.end()) continue;
+        
+        if (l == len) {
+            for (const string& candidate : words_by_length.at(l)) {
+                if (candidate == word) continue;
+                
+                int diff = 0;
+                for (int i = 0; i < len && diff <= 1; i++) {
+                    if (tolower(word[i]) != tolower(candidate[i])) diff++;
+                }
+                
+                if (diff == 1) {
+                    candidates.push_back(candidate);
+                }
+            }
+        }
+        // For the case where the length difference is 1, add all candidate words and perform precise checks later
+        else {
+            for (const string& candidate : words_by_length.at(l)) {
+                candidates.push_back(candidate);
+            }
+        }
+    }
+    
+    return candidates;
 }
 
 vector<string> generate_word_ladder(const string& begin_word, const string& end_word, const set<string>& word_list) {
@@ -99,13 +137,14 @@ vector<string> generate_word_ladder(const string& begin_word, const string& end_
         return {};
     }
     
-    map<int, vector<string>> words_by_length = organize_by_length(word_list);
+    // Precompute words grouped by length
+    unordered_map<int, vector<string>> words_by_length = organize_by_length(word_list);
     
     // Initialize queue for BFS
     queue<vector<string>> ladder_queue;
     ladder_queue.push({begin_lower});
     
-    set<string> visited;
+    unordered_set<string> visited;
     visited.insert(begin_lower);
     
     while (!ladder_queue.empty()) {
@@ -113,13 +152,18 @@ vector<string> generate_word_ladder(const string& begin_word, const string& end_
         ladder_queue.pop();
         
         string last_word = current_ladder.back();
-        int last_len = last_word.length();
+        
+        // Use pre-filtering to reduce the number of words you need to check
+        vector<string> potential_neighbors = find_potential_neighbors(last_word, words_by_length);
         
         // Check words of same length first, then shorter, then longer
+        int last_len = last_word.length();
+        
         for (int len : {last_len, last_len - 1, last_len + 1}) {
-            if (len < 1 || words_by_length.find(len) == words_by_length.end()) continue;
+            if (len < 1) continue;
             
-            for (const string& word : words_by_length[len]) {
+            for (const string& word : potential_neighbors) {
+                if (word.length() != len) continue;
                 if (visited.find(word) != visited.end()) continue;
                 
                 if (is_adjacent(last_word, word)) {
