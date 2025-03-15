@@ -115,9 +115,9 @@ vector<string> generate_word_ladder(const string& begin_word, const string& end_
         string last_word = current_ladder.back();
         int last_len = last_word.length();
         
-        // Only check words of similar length (current length, -1, or +1)
-        for (int len = max(1, last_len - 1); len <= last_len + 1; len++) {
-            if (words_by_length.find(len) == words_by_length.end()) continue;
+        // Check words of same length first, then shorter, then longer
+        for (int len : {last_len, last_len - 1, last_len + 1}) {
+            if (len < 1 || words_by_length.find(len) == words_by_length.end()) continue;
             
             for (const string& word : words_by_length[len]) {
                 if (visited.find(word) != visited.end()) continue;
