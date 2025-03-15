@@ -79,13 +79,16 @@ vector<string> generate_word_ladder(const string& begin_word, const string& end_
             
             // Check if the word is adjacent to the last word in the ladder
             if (is_adjacent(last_word, word)) {
+                // Mark as visited immediately to prevent infinite loops
+                visited.insert(word);
+                
                 vector<string> new_ladder = current_ladder;
                 new_ladder.push_back(word);
                 
                 if (word == end_word) {
                     return new_ladder;
                 }
-                visited.insert(word);  
+                
                 ladder_queue.push(new_ladder);
             }
         }
@@ -119,15 +122,14 @@ void print_word_ladder(const vector<string>& ladder) {
         return;
     }
     
+    cout << "Word ladder found: ";
     for (size_t i = 0; i < ladder.size(); i++) {
         cout << ladder[i];
         if (i < ladder.size() - 1) {
-            cout << " → ";
+            cout << " ";
         }
     }
-    cout << endl;
-    
-    cout << "Ladder length: " << ladder.size() << endl;
+    cout << " " << endl;
 }
 
 #define my_assert(e) {cout << #e << ((e) ? " passed": " failed") << endl;}
