@@ -23,7 +23,14 @@ int main(int argc, char* argv[]) {
             } else {
                 vector<int> path = extract_shortest_path(distances, previous, dest);
                 cout << "To vertex " << dest << ": ";
-                print_path(path, distances[dest]);
+
+                for (size_t i = 0; i < path.size(); ++i) {
+                    cout << path[i];
+                    if (i < path.size() - 1) {
+                        cout << " ";
+                    }
+                }
+                cout << " \nTotal cost is " << distances[dest] << endl;
             }
         }
         
