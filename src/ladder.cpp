@@ -12,33 +12,56 @@ bool edit_distance_within(const std::string& str1, const std::string& str2, int 
         return false;
     }
     
-    if (len1 == 0) {
-        return len2 <= d;
-    }
-    if (len2 == 0) {
-        return len1 <= d;
+    if (len1 == 0) return len2 <= d;
+    if (len2 == 0) return len1 <= d;
+    
+    // Edit distance = 1
+    if (d == 1) {
+        // If same length, only one character can differ
+        if (len1 == len2) {
+            int diff_count = 0;
+            for (int i = 0; i < len1; i++) {
+                if (tolower(str1[i]) != tolower(str2[i])) {
+                    diff_count++;
+                    if (diff_count > 1) return false;
+                }
+            }
+            return diff_count <= 1;
+        }
+        // If length differs by 1, check for insertion/deletion
+        else if (abs(len1 - len2) == 1) {
+            const string& shorter = (len1 < len2) ? str1 : str2;
+            const string& longer = (len1 < len2) ? str2 : str1;
+            int shorter_idx = 0, longer_idx = 0;
+            bool skip_used = false;
+            
+            while (shorter_idx < shorter.length() && longer_idx < longer.length()) {
+                if (tolower(shorter[shorter_idx]) != tolower(longer[longer_idx])) {
+                    if (skip_used) return false;
+                    skip_used = true;
+                    longer_idx++;
+                } else {
+                    shorter_idx++;
+                    longer_idx++;
+                }
+            }
+            return true;
+        }
+        return false;
     }
     
     // Create a dynamic programming matrix
     vector<vector<int>> dp(len1 + 1, vector<int>(len2 + 1, 0));
     
-    // Initialize the first row and column
-    for (int i = 0; i <= len1; i++) {
-        dp[i][0] = i;
-    }
-    for (int j = 0; j <= len2; j++) {
-        dp[0][j] = j;
-    }
-    // Fill the matrix
+    for (int i = 0; i <= len1; i++) dp[i][0] = i;
+    for (int j = 0; j <= len2; j++) dp[0][j] = j;
+    
     for (int i = 1; i <= len1; i++) {
         for (int j = 1; j <= len2; j++) {
             if (tolower(str1[i-1]) == tolower(str2[j-1])) {
                 dp[i][j] = dp[i-1][j-1];
             } else {
-                // Take the minimum of three operations
-                dp[i][j] = 1 + min(dp[i-1][j-1],  // Replace
-                                  min(dp[i-1][j],   // Delete
-                                      dp[i][j-1])); // Insert
+                dp[i][j] = 1 + min(dp[i-1][j-1], min(dp[i-1][j], dp[i][j-1]));
             }
         }
     }
@@ -48,6 +71,14 @@ bool edit_distance_within(const std::string& str1, const std::string& str2, int 
 // Check if two words are adjacent (edit distance = 1)
 bool is_adjacent(const string& word1, const string& word2) {
     return edit_distance_within(word1, word2, 1);
+}
+
+map<int, vector<string>> organize_by_length(const set<string>& word_list) {
+    map<int, vector<string>> length_map;
+    for (const string& word : word_list) {
+        length_map[word.length()].push_back(word);
+    }
+    return length_map;
 }
 
 vector<string> generate_word_ladder(const string& begin_word, const string& end_word, const set<string>& word_list) {
@@ -68,40 +99,41 @@ vector<string> generate_word_ladder(const string& begin_word, const string& end_
         return {};
     }
     
+    map<int, vector<string>> words_by_length = organize_by_length(word_list);
+    
     // Initialize queue for BFS
     queue<vector<string>> ladder_queue;
     ladder_queue.push({begin_lower});
     
-    // Set to track visited words to avoid cycles
     set<string> visited;
     visited.insert(begin_lower);
     
-    // BFS to find shortest path
     while (!ladder_queue.empty()) {
         vector<string> current_ladder = ladder_queue.front();
         ladder_queue.pop();
         
         string last_word = current_ladder.back();
+        int last_len = last_word.length();
         
-        // Check all words in dictionary to find neighbors
-        for (const string& word : word_list) {
-            if (visited.find(word) != visited.end()) {
-                continue;
-            }
+        // Only check words of similar length (current length, -1, or +1)
+        for (int len = max(1, last_len - 1); len <= last_len + 1; len++) {
+            if (words_by_length.find(len) == words_by_length.end()) continue;
             
-            // Check if the word is adjacent to the last word in the ladder
-            if (is_adjacent(last_word, word)) {
-                // Mark as visited immediately to prevent infinite loops
-                visited.insert(word);
+            for (const string& word : words_by_length[len]) {
+                if (visited.find(word) != visited.end()) continue;
                 
-                vector<string> new_ladder = current_ladder;
-                new_ladder.push_back(word);
-                
-                if (word == end_lower) {
-                    return new_ladder;
+                if (is_adjacent(last_word, word)) {
+                    visited.insert(word);
+                    
+                    vector<string> new_ladder = current_ladder;
+                    new_ladder.push_back(word);
+                    
+                    if (word == end_lower) {
+                        return new_ladder;
+                    }
+                    
+                    ladder_queue.push(new_ladder);
                 }
-                
-                ladder_queue.push(new_ladder);
             }
         }
     }
