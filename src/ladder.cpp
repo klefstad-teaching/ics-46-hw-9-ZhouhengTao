@@ -32,7 +32,7 @@ bool edit_distance_within(const std::string& str1, const std::string& str2, int 
     // Fill the matrix
     for (int i = 1; i <= len1; i++) {
         for (int j = 1; j <= len2; j++) {
-            if (str1[i-1] == str2[j-1]) {
+            if (tolower(str1[i-1]) == tolower(str2[j-1])) {
                 dp[i][j] = dp[i-1][j-1];
             } else {
                 // Take the minimum of three operations
@@ -51,18 +51,30 @@ bool is_adjacent(const string& word1, const string& word2) {
 }
 
 vector<string> generate_word_ladder(const string& begin_word, const string& end_word, const set<string>& word_list) {
-    if (begin_word == end_word) {
+    // Convert input words to lowercase
+    string begin_lower = begin_word;
+    string end_lower = end_word;
+    for (char& c : begin_lower) c = tolower(c);
+    for (char& c : end_lower) c = tolower(c);
+    
+    if (begin_lower == end_lower) {
         error(begin_word, end_word, "Start and end words are the same");
+        return {};
+    }
+    
+    // Check if end word is in the dictionary
+    if (word_list.find(end_lower) == word_list.end()) {
+        error(begin_word, end_word, "End word not in dictionary");
         return {};
     }
     
     // Initialize queue for BFS
     queue<vector<string>> ladder_queue;
-    ladder_queue.push({begin_word});
+    ladder_queue.push({begin_lower});
     
     // Set to track visited words to avoid cycles
     set<string> visited;
-    visited.insert(begin_word);
+    visited.insert(begin_lower);
     
     // BFS to find shortest path
     while (!ladder_queue.empty()) {
@@ -85,7 +97,7 @@ vector<string> generate_word_ladder(const string& begin_word, const string& end_
                 vector<string> new_ladder = current_ladder;
                 new_ladder.push_back(word);
                 
-                if (word == end_word) {
+                if (word == end_lower) {
                     return new_ladder;
                 }
                 
